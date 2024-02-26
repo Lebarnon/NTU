@@ -8,6 +8,18 @@ import pandas as pd
 
 random.seed(0)
 class Source:
+    """
+    Represents a source with a congestion window (cwnd) and a history of cwnd values.
+
+    Attributes:
+        cwnd (float): The current congestion window size.
+        history (dict): A dictionary that stores the cwnd values for each round.
+
+    Methods:
+        updateCwnd(round, congestionEvent, alpha, beta): Updates the cwnd based on the congestion event and parameters.
+        updateHistory(round): Updates the history dictionary with the current cwnd value.
+    """
+
     def __init__(self, cwnd):
         self.cwnd = cwnd
         self.history = {0: cwnd}
@@ -23,6 +35,24 @@ class Source:
         self.history[round] = self.cwnd
 
 class SourceManager:
+    """
+    A class that manages sources for a cloud computing system.
+
+    Attributes:
+        numSources (int): The total number of sources.
+        allSources (dict): A dictionary containing all available sources.
+        sourcesInUse (dict): A dictionary containing sources currently in use.
+
+    Methods:
+        __init__(self, numSources): Initializes the SourceManager object.
+        addAllSources(self): Moves all sources to the sourcesInUse dictionary.
+        addRandomSource(self): Moves a random source from allSources to sourcesInUse.
+        removeRandomSource(self): Moves a random source from sourcesInUse to allSources.
+        updateSourcesInUse(self, round, congestionEvent, alpha, beta): Updates the cwnd of all sources in sourcesInUse.
+        updateSourceInUser(self, id, round, congestionEvent, alpha, beta): Updates the cwnd of a specific source in sourcesInUse.
+        totalBandwidth(self): Calculates the total bandwidth of all sources in sourcesInUse.
+        getAllSources(self): Returns a dictionary containing all sources, including those in sourcesInUse and allSources.
+    """
     def __init__(self, numSources):
         self.numSources = numSources
         self.allSources = {id: Source(random.randint(1, 10)) for id in range(numSources)}
@@ -68,30 +98,17 @@ class SourceManager:
         return all
             
 class Simulation:
-    """
-    A class representing a simulation of a network congestion control algorithm.
-
-    Attributes:
-        numSources (int): The number of sources in the simulation.
-        maxIterations (int): The maximum number of iterations for the simulation.
-        maxBandwidth (int): The maximum bandwidth allowed in the simulation.
-        aimdAlgorithm (AIMDAlgorithm): The AIMD algorithm used for congestion control.
-        useRandomEvents (bool): Flag indicating whether to use random events in the simulation.
-        utilisationHistory (list): List to store the utilisation rate history.
-        congestionHistory (list): List to store the rounds where congestion events occurred.
-        maxBandwidthHistory (list): List to store the maximum bandwidth history.
-        numOfSourcesHistory (list): List to store the number of sources history.
-
-    Methods:
-        run(): Run the simulation.
-        runWithRL(): Run the simulation with reinforcement learning.
-        randomSourceEvent(): Generate a random source event.
-        updateUtilisationHistory(utilisedBandwidth): Update the utilisation rate history.
-        moving_average(data, window_size): Calculate the moving average of a data series.
-        plot(): Plot the utilisation rate and source history.
-    """
-
     def __init__(self, numSources, maxIterations, maxBandwidth, aimdAlgorithm, useRandomEvents=False):
+        """
+        Initialize the Simulation class.
+
+        Parameters:
+            numSources (int): The number of sources in the simulation.
+            maxIterations (int): The maximum number of iterations for the simulation.
+            maxBandwidth (int): The maximum bandwidth for the simulation.
+            aimdAlgorithm (AIMDAlgorithm): The AIMD algorithm used for congestion control.
+            useRandomEvents (bool, optional): Flag indicating whether to use random events in the simulation. Defaults to False.
+        """
         self.numSources = numSources
         self.maxIterations = maxIterations
         self.maxBandwidth = maxBandwidth
@@ -262,6 +279,11 @@ class Simulation:
         plt.show()
 
     def plotLSTM(self):
+        """
+        Plot the LSTM model prediction results.
+
+        This method plots the LSTM model used for predicting the max bandwidth and number of sources.
+        """
         self.lstmModel.plot()
 
 class AIMDAlgorithm:
@@ -278,17 +300,61 @@ class SimpleAIMDAlgorithm(AIMDAlgorithm):
         super().__init__(alpha, beta)
 
 class CustomisedHighSpeedAIMDAlgorithm(AIMDAlgorithm):
+    """
+    A custom implementation of the High-Speed AIMD (Additive Increase Multiplicative Decrease) algorithm.
+    
+    Args:
+        alpha (float): The additive increase factor.
+        beta (float): The multiplicative decrease factor.
+        gapFactor (float, optional): The gap factor used in the calculation of alpha. Defaults to 1.
+        baseRate (float, optional): The base rate used in the calculation of alpha. Defaults to 1.
+    """
     def __init__(self, alpha, beta, gapFactor=1, baseRate=1):
         super().__init__(alpha, beta)
         self.gapFactor = gapFactor
         self.baseRate = baseRate
     
     def updateParams(self, maxBandwidth, numSources, currentWindow, *args):
+        """
+        Updates the parameters alpha and beta based on the given inputs.
+        
+        Args:
+            maxBandwidth (float): The maximum available bandwidth.
+            numSources (int): The number of sources.
+            currentWindow (float): The current congestion window size.
+            *args: Additional arguments (not used in this method).
+        """
         self.alpha = self.baseRate * math.log(self.gapFactor * abs(maxBandwidth/numSources - currentWindow))
         self.beta = max(0,(currentWindow - maxBandwidth/numSources)) / currentWindow + 0.05
 
 class LSTMModel:
+    """
+    LSTMModel class for predicting max bandwidth and number of sources using LSTM models.
+
+    Attributes:
+        bandWidth_scaler (MinMaxScaler): Scaler for max bandwidth values.
+        numOfSources_scaler (MinMaxScaler): Scaler for number of sources values.
+        bandWidthModel (keras.Model): LSTM model for predicting max bandwidth.
+        numOfSourcesModel (keras.Model): LSTM model for predicting number of sources.
+        actualMaxBandwidthHistory (list): List to track actual max bandwidth values.
+        actualNumOfSourcesHistory (list): List to track actual number of sources values.
+        maxBandwidthPredictionHistory (list): List to track predicted max bandwidth values.
+        numOfSourcesPredictionHistory (list): List to track predicted number of sources values.
+        maxBandwidthPredictionWindow (numpy.ndarray): Window of max bandwidth values for prediction.
+        numOfSourcesPredictionWindow (numpy.ndarray): Window of number of sources values for prediction.
+    """
+
     def __init__(self):
+        """
+        Initializes the class instance.
+
+        This method performs the following tasks:
+        1. Initializes the scalers for bandwidth and number of sources.
+        2. Reads the maxBandwidthHistory and numOfSourcesHistory data from CSV files.
+        3. Fits the scalers with the respective data.
+        4. Loads the bandWidthModel and numOfSourcesModel from saved files.
+        5. Initializes the history and prediction windows for bandwidth and number of sources.
+        """
         # scalers
         bandWidth_scaler = MinMaxScaler()
         numOfSources_scaler = MinMaxScaler()
@@ -315,9 +381,17 @@ class LSTMModel:
         self.maxBandwidthPredictionWindow = np.array([]).reshape(1, 0, 1)
         self.numOfSourcesPredictionWindow = np.array([]).reshape(1, 0, 1)
 
-
     def predictMaxBandwidth(self, curMaxBandWidth):
-         # use the prediction to update the batch and remove the first value
+        """
+        Predicts the max bandwidth based on the current max bandwidth value.
+
+        Args:
+            curMaxBandWidth (float): Current max bandwidth value.
+
+        Returns:
+            float: Predicted max bandwidth value.
+        """
+        # use the prediction to update the batch and remove the first value
         actual = np.array([[curMaxBandWidth]])
         actual = self.bandWidth_scaler.transform(actual)
         formatActual = actual.reshape((1, 1, 1))
@@ -325,53 +399,67 @@ class LSTMModel:
         if len(self.maxBandwidthPredictionWindow[0]) < 32:
             self.maxBandwidthPredictionWindow = np.append(
                 self.maxBandwidthPredictionWindow,
-                formatActual,axis=1)
+                formatActual, axis=1)
             return curMaxBandWidth
-            
+
         self.maxBandwidthPredictionWindow = np.append(
-            self.maxBandwidthPredictionWindow[:,1:,:],
-            formatActual,axis=1)
+            self.maxBandwidthPredictionWindow[:, 1:, :],
+            formatActual, axis=1)
         # get the prediction value for the first batch
         current_pred = self.bandWidthModel.predict(
             self.maxBandwidthPredictionWindow[
                 -min(len(self.maxBandwidthPredictionWindow), 32):
-                ], verbose = 0)[0]
-        
+            ], verbose=0)[0]
+
         current_pred = self.bandWidth_scaler.inverse_transform([current_pred])[0][0]
 
         self.actualMaxBandwidthHistory.append(curMaxBandWidth)
         self.maxBandwidthPredictionHistory.append(current_pred)
 
         return current_pred
+
     def predictNumOfSources(self, curNumOfSources):
-         # use the prediction to update the batch and remove the first value
+        """
+        Predicts the number of sources based on the current number of sources value.
+
+        Args:
+            curNumOfSources (float): Current number of sources value.
+
+        Returns:
+            float: Predicted number of sources value.
+        """
+        # use the prediction to update the batch and remove the first value
         actual = np.array([[curNumOfSources]])
         actual = self.numOfSources_scaler.transform(actual)
         formatActual = actual.reshape((1, 1, 1))
-        
+
         # if the history is not enough, return the current value
         if len(self.numOfSourcesPredictionWindow[0]) < 32:
             self.numOfSourcesPredictionWindow = np.append(
                 self.numOfSourcesPredictionWindow,
-                formatActual,axis=1)
+                formatActual, axis=1)
             return curNumOfSources
-        
+
         self.numOfSourcesPredictionWindow = np.append(
-            self.numOfSourcesPredictionWindow[:,1:,:],
-            formatActual,axis=1)
+            self.numOfSourcesPredictionWindow[:, 1:, :],
+            formatActual, axis=1)
         # get the prediction value for the first batch
         current_pred = self.numOfSourcesModel.predict(
             self.numOfSourcesPredictionWindow[
                 -min(len(self.numOfSourcesPredictionWindow), 32):
-                ], verbose = 0)[0]
-        
+            ], verbose=0)[0]
+
         current_pred = self.numOfSources_scaler.inverse_transform([current_pred])[0][0]
-        
+
         self.actualNumOfSourcesHistory.append(curNumOfSources)
         self.numOfSourcesPredictionHistory.append(current_pred)
 
         return current_pred
+
     def plot(self):
+        """
+        Plots the actual and predicted max bandwidth and number of sources values.
+        """
         import matplotlib.pyplot as plt
 
         fig, axs = plt.subplots(2, 1, figsize=(8, 8))
@@ -390,9 +478,9 @@ class LSTMModel:
     
 def mainMenu():
     print("Select an option:")
-    print("1. Run Simple Simulation")
-    print("2. Run Customised Simulation")
-    print("3. Run Customised Simulation with LSTM")
+    print("1. Run Simulation with Simple AIMD")
+    print("2. Run Simulation with customised AIMD")
+    print("3. Run Simulation with customised AIMD enhanced with LSTM")
     print("4. Exit")
 
     choice = input("Enter your choice: ")
