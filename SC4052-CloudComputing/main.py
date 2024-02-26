@@ -6,7 +6,7 @@ from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 
-random.seed(0)
+random.seed(10)
 class Source:
     """
     Represents a source with a congestion window (cwnd) and a history of cwnd values.
@@ -26,7 +26,7 @@ class Source:
 
     def updateCwnd(self, round, congestionEvent, alpha, beta):
         if congestionEvent:
-            self.cwnd = self.cwnd * (1-beta)
+            self.cwnd = self.cwnd * beta
         else:
             self.cwnd += alpha
         self.updateHistory(round)
@@ -291,6 +291,7 @@ class AIMDAlgorithm:
         self.alpha = alpha
         self.beta = beta
     def getParams(self):
+        self.alpha = max(0, self.alpha)
         return self.alpha, self.beta
     def updateParams(self, *args):
         pass
@@ -324,7 +325,7 @@ class CustomisedHighSpeedAIMDAlgorithm(AIMDAlgorithm):
             currentWindow (float): The current congestion window size.
             *args: Additional arguments (not used in this method).
         """
-        self.alpha = self.baseRate * math.log(self.gapFactor * abs(maxBandwidth/numSources - currentWindow))
+        self.alpha = 0 if maxBandwidth/numSources <= currentWindow else self.baseRate * math.log(self.gapFactor * (maxBandwidth/numSources - currentWindow))
         self.beta = max(0,(currentWindow - maxBandwidth/numSources)) / currentWindow + 0.05
 
 class LSTMModel:
@@ -396,7 +397,7 @@ class LSTMModel:
         actual = self.bandWidth_scaler.transform(actual)
         formatActual = actual.reshape((1, 1, 1))
         # if the history is not enough, return the current value
-        if len(self.maxBandwidthPredictionWindow[0]) < 32:
+        if len(self.maxBandwidthPredictionWindow[0]) < 64:
             self.maxBandwidthPredictionWindow = np.append(
                 self.maxBandwidthPredictionWindow,
                 formatActual, axis=1)
@@ -408,7 +409,7 @@ class LSTMModel:
         # get the prediction value for the first batch
         current_pred = self.bandWidthModel.predict(
             self.maxBandwidthPredictionWindow[
-                -min(len(self.maxBandwidthPredictionWindow), 32):
+                -min(len(self.maxBandwidthPredictionWindow), 64):
             ], verbose=0)[0]
 
         current_pred = self.bandWidth_scaler.inverse_transform([current_pred])[0][0]
@@ -416,7 +417,7 @@ class LSTMModel:
         self.actualMaxBandwidthHistory.append(curMaxBandWidth)
         self.maxBandwidthPredictionHistory.append(current_pred)
 
-        return current_pred
+        return max(1,current_pred)
 
     def predictNumOfSources(self, curNumOfSources):
         """
@@ -434,7 +435,7 @@ class LSTMModel:
         formatActual = actual.reshape((1, 1, 1))
 
         # if the history is not enough, return the current value
-        if len(self.numOfSourcesPredictionWindow[0]) < 32:
+        if len(self.numOfSourcesPredictionWindow[0]) < 64:
             self.numOfSourcesPredictionWindow = np.append(
                 self.numOfSourcesPredictionWindow,
                 formatActual, axis=1)
@@ -446,7 +447,7 @@ class LSTMModel:
         # get the prediction value for the first batch
         current_pred = self.numOfSourcesModel.predict(
             self.numOfSourcesPredictionWindow[
-                -min(len(self.numOfSourcesPredictionWindow), 32):
+                -min(len(self.numOfSourcesPredictionWindow), 64):
             ], verbose=0)[0]
 
         current_pred = self.numOfSources_scaler.inverse_transform([current_pred])[0][0]
