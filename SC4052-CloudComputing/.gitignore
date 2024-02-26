@@ -90,3 +90,6 @@ env3/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+.conda
+archive
