@@ -388,19 +388,48 @@ class LSTMModel:
 
         plt.show()
     
-# Create an instance of the AIMD algorithm
-# simpleAIMDAlgo = SimpleAIMDAlgorithm(1, 0.5)
-# simpleSimulation = Simulation(10, 400, 200, simpleAIMDAlgo, True)
-# simpleSimulation.run()
-# simpleSimulation.plot()
-        
-# Create an instance of the CustomisedHighSpeedAIMDAlgorithm
-customisedAIMDAlgo = CustomisedHighSpeedAIMDAlgorithm(1, 0.5, 1, )
-customisedSimulation = Simulation(10, 400, 200, customisedAIMDAlgo, True)
-# customisedSimulation.run()
-customisedSimulation.runWithLSTM()
-customisedSimulation.plot()
-customisedSimulation.plotLSTM()
+def mainMenu():
+    print("Select an option:")
+    print("1. Run Simple Simulation")
+    print("2. Run Customised Simulation")
+    print("3. Run Customised Simulation with LSTM")
+    print("4. Exit")
 
+    choice = input("Enter your choice: ")
 
-# proActiveSimulation.runWithProActive()
+    if choice == "1":
+        runSimpleSimulation()
+    elif choice == "2":
+        runCustomisedSimulation()
+    elif choice == "3":
+        runCustomisedSimulationWithLSTM()
+    elif choice == "4":
+        exit()
+    else:
+        print("Invalid choice. Please try again.")
+        mainMenu()
+
+def runSimpleSimulation():
+    # Create an instance of the AIMD algorithm
+    simpleAIMDAlgo = SimpleAIMDAlgorithm(1, 0.5)
+    simpleSimulation = Simulation(10, 400, 200, simpleAIMDAlgo, True)
+    simpleSimulation.run()
+    simpleSimulation.plot()
+    mainMenu()
+
+customisedAIMDAlgo = CustomisedHighSpeedAIMDAlgorithm(1, 0.5, 1)
+def runCustomisedSimulation():
+    # Create an instance of the CustomisedHighSpeedAIMDAlgorithm
+    customisedSimulation = Simulation(10, 400, 200, customisedAIMDAlgo, True)
+    customisedSimulation.run()
+    customisedSimulation.plot()
+    mainMenu()
+
+def runCustomisedSimulationWithLSTM():
+    customisedSimulation = Simulation(10, 400, 200, customisedAIMDAlgo, True)
+    customisedSimulation.runWithLSTM()
+    customisedSimulation.plot()
+    customisedSimulation.plotLSTM()
+    mainMenu()
+
+mainMenu()
