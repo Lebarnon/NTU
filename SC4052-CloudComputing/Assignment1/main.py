@@ -160,6 +160,7 @@ class Simulation:
         nextMaxBandwidth = self.maxBandwidth
         nextNumOfSources = len(self.sourceManager.sourcesInUse)
         for round in range(self.maxIterations):
+            print(f"Round: {round}/{self.maxIterations}")
             isRandomDrop = self.randomSourceEvent()
             utilisedBandwidth = self.sourceManager.totalBandwidth()
             congestionEvent = utilisedBandwidth > self.maxBandwidth or isRandomDrop
@@ -504,7 +505,6 @@ def runSimpleSimulation():
     simpleSimulation = Simulation(10, 400, 200, simpleAIMDAlgo, True)
     simpleSimulation.run()
     simpleSimulation.plot()
-    mainMenu()
 
 customisedAIMDAlgo = CustomisedHighSpeedAIMDAlgorithm(1, 0.5, 1)
 def runCustomisedSimulation():
@@ -512,13 +512,11 @@ def runCustomisedSimulation():
     customisedSimulation = Simulation(10, 400, 200, customisedAIMDAlgo, True)
     customisedSimulation.run()
     customisedSimulation.plot()
-    mainMenu()
 
 def runCustomisedSimulationWithLSTM():
     customisedSimulation = Simulation(10, 400, 200, customisedAIMDAlgo, True)
     customisedSimulation.runWithLSTM()
     customisedSimulation.plot()
     customisedSimulation.plotLSTM()
-    mainMenu()
 
 mainMenu()
