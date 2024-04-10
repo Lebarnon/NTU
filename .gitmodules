@@ -1,0 +1,6 @@
+[submodule "SC4051-DistributedSystems/SC4051-Client"]
+	path = SC4051-DistributedSystems/SC4051-Client
+	url = https://github.com/syed0059/SC4051-Client
+[submodule "SC4051-DistributedSystems/SC4051-Server"]
+	path = SC4051-DistributedSystems/SC4051-Server
+	url = https://github.com/syed0059/SC4051-Server
